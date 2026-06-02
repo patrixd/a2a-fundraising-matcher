@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Setup — AgentMatch{% endblock %}
+{% block header %}
+<header>
+  <div class="logo">Agent<span>Match</span></div>
+  <div>
+    <span class="badge badge-{{ user.role }}">{{ 'Founder' if user.role == 'founder' else 'VC' }}</span>
+    <span style="margin-left:0.5rem; color: var(--muted);">{{ user.name }}</span>
+    {% if profile_complete and agent_complete %}
+    <a href="{{ url_for('founder_dashboard' if user.role == 'founder' else 'vc_dashboard') }}" class="btn btn-ghost btn-sm" style="margin-left:1rem;">Dashboard →</a>
+    {% endif %}
+  </div>
+</header>
+{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <h2 style="margin-top:0;">Your setup</h2>
+  <p style="color:var(--muted); margin-bottom:0.75rem;">
+    Everything is stored in <strong>SQLite</strong> (<code>data/platform.db</code>).
+    {% if user.role == 'founder' %}
+    Founders share startup facts + what they want from investors.
+    {% else %}
+    VCs share fund thesis + what they look for in founders.
+    {% endif %}
+  </p>
+  <div class="steps">
+    <span class="step {% if profile_complete %}done{% endif %}">Profile (required *)</span>
+    <span class="step {% if agent_complete %}done{% endif %}">AGENTS.md</span>
+  </div>
+</div>
+
+<form method="post" class="setup-form">
+  <div class="grid-2">
+    <div class="card">
+      <h3>{% if user.role == 'founder' %}Founder profile{% else %}VC / fund profile{% endif %}</h3>
+
+      {% if user.role == 'founder' %}
+      <label>Company name *</label>
+      <input name="company_name" required value="{{ profile.company_name or '' }}" placeholder="Acme Inc">
+
+      <label>One-liner *</label>
+      <input name="one_liner" required value="{{ profile.one_liner or '' }}" placeholder="AI copilot for legal ops teams">
+
+      <label>Problem & solution</label>
+      <textarea name="problem_solution" rows="3" placeholder="What pain do you solve and how?">{{ profile.problem_solution or '' }}</textarea>
+
+      <label>Traction & metrics</label>
+      <textarea name="traction" rows="3" placeholder="ARR, users, pilots, growth…">{{ profile.traction or '' }}</textarea>
+
+      <label>Stage *</label>
+      <select name="stage" required>
+        <option value="">— select —</option>
+        {% for s in ['pre-seed', 'seed', 'Series A', 'Series B+'] %}
+        <option value="{{ s }}" {% if profile.stage == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Sector *</label>
+      <input name="sector" required value="{{ profile.sector or '' }}" placeholder="B2B SaaS, fintech, climate…">
+
+      <label>Geography</label>
+      <input name="geography" value="{{ profile.geography or '' }}" placeholder="SF / NYC / remote-first">
+
+      <label>Raising</label>
+      <input name="raising_amount" value="{{ profile.raising_amount or '' }}" placeholder="$2M seed">
+
+      <label>Use of funds</label>
+      <input name="use_of_funds" value="{{ profile.use_of_funds or '' }}" placeholder="Hiring eng + GTM">
+
+      <label>Team background</label>
+      <textarea name="team_background" rows="2" placeholder="Prior exits, domain expertise…">{{ profile.team_background or '' }}</textarea>
+
+      <label>What I'm looking for in an investor</label>
+      <textarea name="looking_for_investor" rows="3" placeholder="Sector expertise, intro network, board style…">{{ profile.looking_for_investor or '' }}</textarea>
+
+      {% else %}
+      <label>Fund name *</label>
+      <input name="fund_name" required value="{{ profile.fund_name or '' }}" placeholder="Horizon Ventures">
+
+      <label>Your title</label>
+      <input name="your_title" value="{{ profile.your_title or '' }}" placeholder="Partner, Principal…">
+
+      <label>Investment thesis *</label>
+      <textarea name="investment_thesis" required rows="3" placeholder="We back B2B software at seed–A in US/EU…">{{ profile.investment_thesis or '' }}</textarea>
+
+      <label>Sectors *</label>
+      <input name="sectors" required value="{{ profile.sectors or '' }}" placeholder="B2B SaaS, devtools, fintech">
+
+      <label>Stages you invest in *</label>
+      <input name="stages" required value="{{ profile.stages or '' }}" placeholder="pre-seed, seed, Series A">
+
+      <label>Typical check size *</label>
+      <input name="check_size" required value="{{ profile.check_size or '' }}" placeholder="$500k – $3M">
+
+      <label>Geography focus</label>
+      <input name="geography" value="{{ profile.geography or '' }}" placeholder="US, Europe, global">
+
+      <label>Notable investments</label>
+      <textarea name="notable_investments" rows="2" placeholder="Portfolio highlights (optional)">{{ profile.notable_investments or '' }}</textarea>
+
+      <label>What I'm looking for in founders</label>
+      <textarea name="looking_for_founders" rows="3" placeholder="Technical founders, clear wedge, early revenue…">{{ profile.looking_for_founders or '' }}</textarea>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h3>AGENTS.md</h3>
+      <p style="color:var(--muted); font-size:0.9rem;">
+        Define <strong>what your agent should do</strong> and <strong>what you're looking for</strong>.
+        This file drives the negotiating agent (subprocess / Cursor agent in production).
+      </p>
+      <label>Agent instructions (markdown) *</label>
+      <textarea name="agent_content" required rows="22" class="agent-editor">{{ agent_content }}</textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:1rem; display:flex; gap:0.75rem; align-items:center;">
+    <button type="submit" class="btn btn-primary">Save profile &amp; agent</button>
+    {% if profile_complete and agent_complete %}
+    <a href="{{ url_for('founder_dashboard' if user.role == 'founder' else 'vc_dashboard') }}" class="btn btn-ghost">Go to dashboard</a>
+    {% endif %}
+  </div>
+</form>
+
+<details class="card schema-doc" style="margin-top:1.5rem;">
+  <summary style="cursor:pointer; font-weight:600;">Data schema (SQLite)</summary>
+  <pre style="font-size:0.75rem; color:var(--muted); overflow-x:auto;">users(id, name, role)
+founder_profiles(user_id, company_name, one_liner, problem_solution, traction,
+  stage, sector, geography, raising_amount, use_of_funds, team_background, looking_for_investor)
+vc_profiles(user_id, fund_name, your_title, investment_thesis, sectors, stages,
+  check_size, geography, notable_investments, looking_for_founders)
+agent_md(user_id, content)
+matches(id, founder_id, vc_id, score, verdict, transcript)</pre>
+</details>
+
+{% endblock %}

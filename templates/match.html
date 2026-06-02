@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Match Result — AgentMatch{% endblock %}
+{% block header %}
+<header>
+  <div class="logo">Agent<span>Match</span></div>
+  <a href="{{ back_url }}" class="btn btn-ghost btn-sm">Dashboard</a>
+</header>
+{% endblock %}
+{% block content %}
+
+<div class="card" style="text-align:center;">
+  <p style="color:var(--muted); margin:0;">Match score</p>
+  <div class="score-ring">{{ match.score }}%</div>
+  <p style="font-size:1.1rem; margin-top:0.5rem;"><strong>{{ match.verdict }}</strong></p>
+  <p style="color:var(--muted); font-size:0.9rem;">
+    {{ founder.name }} ({{ founder.role }}) ↔ {{ vc.name }} ({{ vc.role }})
+  </p>
+</div>
+
+{% if highlights %}
+<div class="card">
+  <h3>Highlights</h3>
+  <ul class="highlights">
+    {% for h in highlights %}
+    <li>{{ h }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>Agent conversation</h3>
+  <p style="color:var(--muted); font-size:0.85rem; margin-top:0;">
+    Simulated via Python subprocess (<code>scripts/agent_dialogue.py</code>)
+  </p>
+  <div class="chat" style="margin-top:1rem;">
+    {% for turn in transcript %}
+    {% set sp = turn.speaker | lower %}
+    <div class="chat-bubble {% if 'founder' in sp or founder.name.lower() in sp %}chat-founder{% elif 'vc' in sp or vc.name.lower() in sp %}chat-vc{% else %}chat-engine{% endif %}">
+      <strong>{{ turn.speaker }}</strong>
+      {{ turn.message }}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<a href="{{ back_url }}" class="btn btn-ghost">← Back to dashboard</a>
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ role_label }} Dashboard — AgentMatch{% endblock %}
+{% block header %}
+<header>
+  <div class="logo">Agent<span>Match</span></div>
+  <div>
+    <span class="badge badge-{{ user.role }}">{{ role_label }}</span>
+    <span style="margin-left:0.5rem; color: var(--muted);">{{ user.name }}</span>
+    <a href="{{ url_for('setup') }}" class="btn btn-ghost btn-sm" style="margin-left:0.75rem;">Edit setup</a>
+    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</header>
+{% endblock %}
+{% block content %}
+
+<div class="steps">
+  <span class="step done">1. Profile</span>
+  <span class="step done">2. AGENTS.md</span>
+  <span class="step">3. Match</span>
+  <span class="step">4. Show Match</span>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Your profile</h3>
+    {% if user.role == 'founder' %}
+      <p><strong>{{ profile.company_name or '—' }}</strong></p>
+      <p style="color:var(--muted); font-size:0.9rem;">{{ profile.one_liner or '—' }}</p>
+      <p style="font-size:0.85rem; color:var(--muted);">
+        {{ profile.stage }} · {{ profile.sector }}
+        {% if profile.raising_amount %} · {{ profile.raising_amount }}{% endif %}
+      </p>
+    {% else %}
+      <p><strong>{{ profile.fund_name or '—' }}</strong></p>
+      <p style="color:var(--muted); font-size:0.9rem;">{{ profile.investment_thesis or '—' }}</p>
+      <p style="font-size:0.85rem; color:var(--muted);">
+        {{ profile.stages }} · {{ profile.check_size }}
+      </p>
+    {% endif %}
+    <a href="{{ url_for('setup') }}" class="btn btn-ghost btn-sm">Edit setup</a>
+  </div>
+
+  <div class="card">
+    <h3>Your agent</h3>
+    <pre class="agent-preview">{{ agent_md[:400] }}{% if agent_md|length > 400 %}…{% endif %}</pre>
+    <a href="{{ url_for('setup') }}" class="btn btn-ghost btn-sm">Edit AGENTS.md</a>
+  </div>
+</div>
+
+<div class="card">
+  <h3>{% if user.role == 'founder' %}VCs to match{% else %}Founders to match{% endif %}</h3>
+  <ul class="counterpart-list">
+    {% for c in counterparts %}
+    <li>
+      <div>
+        <strong>{{ c.name }}</strong>
+        {% if c.company %}<span style="color:var(--muted);"> — {{ c.company }}</span>{% endif %}
+        {% if c.headline %}<br><small style="color:var(--muted);">{{ c.headline }}</small>{% endif %}
+      </div>
+      <form method="post" action="{{ url_for('trigger_match', other_id=c.id) }}">
+        <button type="submit" class="btn btn-primary btn-sm">Run agent match</button>
+      </form>
+    </li>
+    {% else %}
+    <li style="color:var(--muted); border:none;">
+      No {% if user.role == 'founder' %}VCs{% else %}founders{% endif %} yet — open another tab and mock-login as the other role.
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% if matches %}
+<div class="card">
+  <h3>Past matches</h3>
+  <ul class="counterpart-list">
+    {% for m in matches %}
+    <li>
+      <div>
+        {% if user.role == 'founder' %}
+          vs {{ m.vc_name }}
+        {% else %}
+          vs {{ m.founder_name }}
+        {% endif %}
+        — score {{ m.score }}
+      </div>
+      <a href="{{ url_for('show_match', match_id=m.id) }}" class="btn btn-ghost btn-sm">View</a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% endblock %}

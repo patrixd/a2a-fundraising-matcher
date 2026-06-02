@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Profile — AgentMatch{% endblock %}
+{% block header %}
+<header>
+  <div class="logo">Agent<span>Match</span></div>
+  <a href="{{ url_for('founder_dashboard' if user.role == 'founder' else 'vc_dashboard') }}" class="btn btn-ghost btn-sm">← Back</a>
+</header>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Create profile</h2>
+  <p style="color:var(--muted);">{% if user.role == 'founder' %}Tell VCs what you're building.{% else %}Share your fund thesis and check size.{% endif %}</p>
+
+  <form method="post">
+    <label>Headline</label>
+    <input name="headline" value="{{ profile.headline or '' }}" placeholder="AI infra for legal teams">
+
+    <label>Company / Fund name</label>
+    <input name="company" value="{{ profile.company or '' }}" placeholder="{% if user.role == 'founder' %}Acme Inc{% else %}Horizon Ventures{% endif %}">
+
+    <label>Bio / Description</label>
+    <textarea name="bio" rows="4" placeholder="Traction, team, wedge…">{{ profile.bio or '' }}</textarea>
+
+    {% if user.role == 'founder' %}
+    <label>Stage</label>
+    <select name="stage">
+      {% for s in ['pre-seed', 'seed', 'Series A', 'Series B+'] %}
+      <option value="{{ s }}" {% if profile.stage == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <label>Sector</label>
+    <input name="sector" value="{{ profile.sector or '' }}" placeholder="B2B SaaS, fintech, climate…">
+    <input type="hidden" name="check_size" value="{{ profile.check_size or '' }}">
+    <input type="hidden" name="thesis" value="{{ profile.thesis or '' }}">
+    {% else %}
+    <label>Investment thesis</label>
+    <input name="thesis" value="{{ profile.thesis or '' }}" placeholder="B2B software, US/EU, seed–A">
+    <label>Typical check size</label>
+    <input name="check_size" value="{{ profile.check_size or '' }}" placeholder="$500k – $3M">
+    <input type="hidden" name="stage" value="{{ profile.stage or '' }}">
+    <input type="hidden" name="sector" value="{{ profile.sector or '' }}">
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary">Save profile</button>
+  </form>
+</div>
+{% endblock %}
