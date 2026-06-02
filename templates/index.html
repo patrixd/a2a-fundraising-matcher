@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}AgentMatch — Agentic Founder ↔ VC Matching{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Agents match.<br>You connect.</h1>
+  <p>Founders and VCs deploy agents (AGENTS.md) to negotiate fit before humans ever meet.</p>
+</section>
+
+<div class="login-cards">
+  <form class="card login-card" method="post" action="{{ url_for('login') }}">
+    <input type="hidden" name="role" value="founder">
+    <span class="badge badge-founder">Founder</span>
+    <h3>Founder view</h3>
+    <p style="color: var(--muted); font-size: 0.9rem;">Create profile + AGENTS.md, then match with VCs.</p>
+    <label for="name-founder">Your name</label>
+    <input id="name-founder" name="name" placeholder="Alex Chen" value="Alex Chen">
+    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:0.5rem;">Mock login as Founder</button>
+  </form>
+
+  <form class="card login-card" method="post" action="{{ url_for('login') }}">
+    <input type="hidden" name="role" value="vc">
+    <span class="badge badge-vc">VC</span>
+    <h3>VC view</h3>
+    <p style="color: var(--muted); font-size: 0.9rem;">Define thesis + agent, discover founder matches.</p>
+    <label for="name-vc">Your name</label>
+    <input id="name-vc" name="name" placeholder="Jordan Lee" value="Jordan Lee">
+    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:0.5rem;">Mock login as VC</button>
+  </form>
+</div>
+
+<p class="flow-hint">
+  Founder View → Profile + AGENTS.md → <strong>Match</strong> ← VC Profile + AGENTS.md ← VC View → Show Match
+</p>
+{% endblock %}

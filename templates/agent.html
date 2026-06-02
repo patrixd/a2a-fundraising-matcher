@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}AGENTS.md — AgentMatch{% endblock %}
+{% block header %}
+<header>
+  <div class="logo">Agent<span>Match</span></div>
+  <a href="{{ url_for('founder_dashboard' if user.role == 'founder' else 'vc_dashboard') }}" class="btn btn-ghost btn-sm">← Back</a>
+</header>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>AGENTS.md</h2>
+  <p style="color:var(--muted);">Instructions for your negotiating agent. In production this drives a Cursor agent subprocess.</p>
+
+  <form method="post">
+    <label>Agent definition (markdown)</label>
+    <textarea name="content" rows="18" style="font-family: ui-monospace, monospace; font-size: 0.85rem;">{{ content }}</textarea>
+    <button type="submit" class="btn btn-primary">Save AGENTS.md</button>
+  </form>
+</div>
+{% endblock %}
