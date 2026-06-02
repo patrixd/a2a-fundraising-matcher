@@ -339,3 +339,129 @@ pre.agent-preview {
   color: var(--text);
   margin-bottom: 0.75rem;
 }
+
+/* Availability picker (setup) */
+.availability-card {
+  margin-top: 1rem;
+}
+
+.avail-picker {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 720px) {
+  .avail-picker {
+    grid-template-columns: 1fr 1fr;
+  }
+  .avail-picker-action {
+    grid-column: 1 / -1;
+  }
+}
+
+.availability-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.avail-item,
+.avail-empty {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  background: var(--bg);
+}
+
+.avail-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  justify-content: center;
+}
+
+.avail-when {
+  font-size: 0.9rem;
+}
+
+/* Match page calendar event */
+.calendar-event-card {
+  padding: 0;
+  overflow: hidden;
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.25);
+}
+
+.calendar-event-highlight {
+  display: flex;
+  min-height: 140px;
+}
+
+.calendar-event-bar {
+  width: 6px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+  flex-shrink: 0;
+}
+
+.calendar-event-body {
+  padding: 1.25rem 1.5rem;
+  flex: 1;
+}
+
+.calendar-event-label {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.calendar-event-title {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.calendar-event-when {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.calendar-day {
+  display: block;
+  font-weight: 600;
+}
+
+.calendar-time {
+  color: var(--accent-dim);
+  font-weight: 600;
+}
+
+.calendar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.calendar-add-btn {
+  cursor: pointer;
+}
+
+.calendar-event-card:target {
+  animation: cal-pulse 1.2s ease;
+}
+
+@keyframes cal-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(52, 211, 153, 0);
+  }
+}
