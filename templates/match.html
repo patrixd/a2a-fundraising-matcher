@@ -17,6 +17,38 @@
   </p>
 </div>
 
+{% if calendar %}
+<div class="card calendar-event-card" id="meeting-slot">
+  <div class="calendar-event-highlight">
+    <div class="calendar-event-bar"></div>
+    <div class="calendar-event-body">
+      <p class="calendar-event-label">Proposed intro call</p>
+      <h3 class="calendar-event-title">{{ calendar.title }}</h3>
+      <p class="calendar-event-when">
+        <span class="calendar-day">{{ calendar.display_date }}</span>
+        <span class="calendar-time">{{ calendar.display_time }}</span>
+      </p>
+      <p style="color:var(--muted); font-size:0.85rem; margin:0 0 1rem;">
+        Based on overlapping availability from both profiles.
+      </p>
+      <div class="calendar-actions">
+        <a
+          href="{{ calendar.google_url }}"
+          target="_blank"
+          rel="noopener"
+          class="btn btn-primary calendar-add-btn"
+        >
+          Add to Google Calendar
+        </a>
+        <a href="{{ calendar.ics_url }}" class="btn btn-ghost calendar-add-btn" download>
+          Download .ics (Apple / Outlook)
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {% if highlights %}
 <div class="card">
   <h3>Highlights</h3>

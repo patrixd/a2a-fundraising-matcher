@@ -11,6 +11,14 @@ def get_db():
     return conn
 
 
+def ensure_schema():
+    """Run migrations; safe to call before any write."""
+    conn = get_db()
+    _migrate_schema(conn)
+    conn.commit()
+    conn.close()
+
+
 def init_db():
     conn = get_db()
     conn.executescript(
@@ -63,6 +71,15 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
 
+        CREATE TABLE IF NOT EXISTS availability_slots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            slot_date TEXT NOT NULL,
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+
         CREATE TABLE IF NOT EXISTS matches (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             founder_id INTEGER NOT NULL,
@@ -70,6 +87,9 @@ def init_db():
             score INTEGER,
             verdict TEXT,
             transcript TEXT,
+            meeting_start TEXT,
+            meeting_end TEXT,
+            meeting_title TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (founder_id) REFERENCES users(id),
             FOREIGN KEY (vc_id) REFERENCES users(id)
@@ -110,6 +130,9 @@ def _migrate_schema(conn):
         ("vc_profiles", "your_title", "TEXT"),
         ("vc_profiles", "notable_investments", "TEXT"),
         ("vc_profiles", "looking_for_founders", "TEXT"),
+        ("matches", "meeting_start", "TEXT"),
+        ("matches", "meeting_end", "TEXT"),
+        ("matches", "meeting_title", "TEXT"),
     ):
         _add_column_if_missing(conn, table, column, definition)
 
@@ -166,3 +189,28 @@ def _migrate_legacy_profiles(conn):
                     row.get("bio") or "",
                 ),
             )
+
+
+def get_agent_md(user_id: int) -> str:
+    ensure_schema()
+    conn = get_db()
+    row = conn.execute(
+        "SELECT content FROM agent_md WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    conn.close()
+    return row["content"] if row else ""
+
+
+def save_agent_md(user_id: int, content: str):
+    ensure_schema()
+    conn = get_db()
+    conn.execute(
+        """
+        INSERT INTO agent_md (user_id, content)
+        VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET content=excluded.content
+        """,
+        (user_id, content),
+    )
+    conn.commit()
+    conn.close()

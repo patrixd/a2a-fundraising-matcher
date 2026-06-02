@@ -3,6 +3,7 @@ from functools import wraps
 
 from flask import (
     Flask,
+    Response,
     flash,
     redirect,
     render_template,
@@ -11,7 +12,14 @@ from flask import (
     url_for,
 )
 
-from database import get_db, init_db
+from availability import (
+    find_meeting_slot,
+    list_slots,
+    parse_slots_from_form,
+    replace_slots,
+)
+from calendar_utils import build_ics, google_calendar_url
+from database import get_agent_md, get_db, init_db, save_agent_md
 from matcher import run_match
 from profiles import (
     get_role_profile,
@@ -43,29 +51,6 @@ def current_user():
     row = conn.execute("SELECT * FROM users WHERE id = ?", (session["user_id"],)).fetchone()
     conn.close()
     return dict(row) if row else None
-
-
-def get_agent_md(user_id):
-    conn = get_db()
-    row = conn.execute("SELECT content FROM agent_md WHERE user_id = ?", (user_id,)).fetchone()
-    conn.close()
-    return row["content"] if row else ""
-
-
-def save_agent_md(user_id, content):
-    conn = get_db()
-    conn.execute(
-        """
-        INSERT INTO agent_md (user_id, content, updated_at)
-        VALUES (?, ?, datetime('now'))
-        ON CONFLICT(user_id) DO UPDATE SET
-            content=excluded.content,
-            updated_at=datetime('now')
-        """,
-        (user_id, content),
-    )
-    conn.commit()
-    conn.close()
 
 
 def setup_is_complete(user):
@@ -161,6 +146,8 @@ def setup():
         if agent_body:
             save_agent_md(user["id"], agent_body)
 
+        replace_slots(user["id"], parse_slots_from_form(request.form))
+
         flash("Saved to SQLite.", "success")
 
         if setup_is_complete(user):
@@ -174,6 +161,7 @@ def setup():
         user=user,
         profile=profile,
         agent_content=agent_content,
+        availability_slots=list_slots(user["id"]),
         profile_complete=profile_is_complete(user["id"], user["role"]),
         agent_complete=bool(get_agent_md(user["id"]).strip()),
     )
@@ -218,6 +206,7 @@ def founder_dashboard():
     ).fetchall()
     conn.close()
 
+    slots = list_slots(user["id"])
     return render_template(
         "dashboard.html",
         user=user,
@@ -226,6 +215,7 @@ def founder_dashboard():
         counterparts=list_counterparts("founder"),
         matches=[dict(m) for m in matches],
         role_label="Founder",
+        availability_count=len(slots),
     )
 
 
@@ -249,6 +239,7 @@ def vc_dashboard():
     ).fetchall()
     conn.close()
 
+    slots = list_slots(user["id"])
     return render_template(
         "dashboard.html",
         user=user,
@@ -257,6 +248,7 @@ def vc_dashboard():
         counterparts=list_counterparts("vc"),
         matches=[dict(m) for m in matches],
         role_label="VC",
+        availability_count=len(slots),
     )
 
 
@@ -326,10 +318,28 @@ def trigger_match(other_id):
     vc = to_match_payload(v_user, v_prof)
     result = run_match(founder, vc, f_agent, v_agent)
 
+    meeting = find_meeting_slot(founder_id, vc_id)
+    f_label = f_prof.get("company_name") or f_user["name"]
+    v_label = v_prof.get("fund_name") or v_user["name"]
+    meeting_title = f"AgentMatch intro: {f_label} × {v_label}"
+    result["meeting"] = meeting
+    result.setdefault("transcript", []).append(
+        {
+            "speaker": "Match Engine",
+            "message": (
+                f"Proposed intro: {meeting['display_date']} at {meeting['display_time']}. "
+                "Both parties can add this to their calendar from the match page."
+            ),
+        }
+    )
+
     conn.execute(
         """
-        INSERT INTO matches (founder_id, vc_id, score, verdict, transcript)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO matches (
+            founder_id, vc_id, score, verdict, transcript,
+            meeting_start, meeting_end, meeting_title
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             founder_id,
@@ -337,13 +347,16 @@ def trigger_match(other_id):
             result.get("score", 0),
             result.get("verdict", ""),
             json.dumps(result),
+            meeting["meeting_start"],
+            meeting["meeting_end"],
+            meeting_title,
         ),
     )
     match_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     conn.commit()
     conn.close()
 
-    return redirect(url_for("show_match", match_id=match_id))
+    return redirect(url_for("show_match", match_id=match_id) + "#meeting-slot")
 
 
 @app.route("/matches/<int:match_id>")
@@ -364,6 +377,36 @@ def show_match(match_id):
     user = current_user()
     back = url_for(dashboard_route(user)) if user else url_for("index")
 
+    meeting_start = m.get("meeting_start")
+    meeting_end = m.get("meeting_end")
+    meeting_title = m.get("meeting_title") or "AgentMatch intro call"
+    calendar = None
+    if meeting_start and meeting_end:
+        details = (
+            f"Intro call scheduled via AgentMatch.\n"
+            f"{founder['name']} (founder) ↔ {vc['name']} (VC)\n"
+            f"Match score: {m.get('score')}%"
+        )
+        calendar = {
+            "title": meeting_title,
+            "start": meeting_start,
+            "end": meeting_end,
+            "google_url": google_calendar_url(meeting_title, meeting_start, meeting_end, details),
+            "ics_url": url_for("match_calendar_ics", match_id=match_id),
+        }
+        if data.get("meeting"):
+            calendar["display_date"] = data["meeting"].get("display_date", "")
+            calendar["display_time"] = data["meeting"].get("display_time", "")
+        else:
+            from datetime import datetime
+
+            s = datetime.fromisoformat(meeting_start)
+            e = datetime.fromisoformat(meeting_end)
+            calendar["display_date"] = f"{s.strftime('%A, %B')} {s.day}, {s.year}"
+            calendar["display_time"] = (
+                f"{s.strftime('%I:%M %p').lstrip('0')} – {e.strftime('%I:%M %p').lstrip('0')}"
+            )
+
     return render_template(
         "match.html",
         match=m,
@@ -373,6 +416,31 @@ def show_match(match_id):
         transcript=data.get("transcript", []),
         highlights=data.get("highlights", []),
         back_url=back,
+        calendar=calendar,
+    )
+
+
+@app.route("/matches/<int:match_id>/calendar.ics")
+@login_required
+def match_calendar_ics(match_id):
+    conn = get_db()
+    m = conn.execute("SELECT * FROM matches WHERE id = ?", (match_id,)).fetchone()
+    conn.close()
+    if not m or not m["meeting_start"]:
+        flash("No meeting slot for this match.", "error")
+        return redirect(url_for("show_match", match_id=match_id))
+
+    m = dict(m)
+    body = build_ics(
+        m.get("meeting_title") or "AgentMatch intro",
+        m["meeting_start"],
+        m["meeting_end"],
+        description=f"Match #{match_id} on AgentMatch",
+    )
+    return Response(
+        body,
+        mimetype="text/calendar",
+        headers={"Content-Disposition": f'attachment; filename="agentmatch-{match_id}.ics"'},
     )
 
 

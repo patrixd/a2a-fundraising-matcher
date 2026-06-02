@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Optional
 
-from database import get_db
+from database import ensure_schema, get_db
 
 FOUNDER_REQUIRED = ("company_name", "one_liner", "stage", "sector")
 VC_REQUIRED = ("fund_name", "investment_thesis", "check_size", "stages")
@@ -21,14 +21,15 @@ def get_role_profile(user_id: int, role: str) -> Optional[Dict]:
 
 
 def save_founder_profile(user_id: int, data: dict):
+    ensure_schema()
     conn = get_db()
     conn.execute(
         """
         INSERT INTO founder_profiles (
             user_id, company_name, one_liner, problem_solution, traction,
             stage, sector, geography, raising_amount, use_of_funds,
-            team_background, looking_for_investor, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            team_background, looking_for_investor
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET
             company_name=excluded.company_name,
             one_liner=excluded.one_liner,
@@ -40,8 +41,7 @@ def save_founder_profile(user_id: int, data: dict):
             raising_amount=excluded.raising_amount,
             use_of_funds=excluded.use_of_funds,
             team_background=excluded.team_background,
-            looking_for_investor=excluded.looking_for_investor,
-            updated_at=datetime('now')
+            looking_for_investor=excluded.looking_for_investor
         """,
         (
             user_id,
@@ -63,14 +63,15 @@ def save_founder_profile(user_id: int, data: dict):
 
 
 def save_vc_profile(user_id: int, data: dict):
+    ensure_schema()
     conn = get_db()
     conn.execute(
         """
         INSERT INTO vc_profiles (
             user_id, fund_name, your_title, investment_thesis, sectors,
             stages, check_size, geography, notable_investments,
-            looking_for_founders, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            looking_for_founders
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET
             fund_name=excluded.fund_name,
             your_title=excluded.your_title,
@@ -80,8 +81,7 @@ def save_vc_profile(user_id: int, data: dict):
             check_size=excluded.check_size,
             geography=excluded.geography,
             notable_investments=excluded.notable_investments,
-            looking_for_founders=excluded.looking_for_founders,
-            updated_at=datetime('now')
+            looking_for_founders=excluded.looking_for_founders
         """,
         (
             user_id,

@@ -27,10 +27,12 @@
   <div class="steps">
     <span class="step {% if profile_complete %}done{% endif %}">Profile (required *)</span>
     <span class="step {% if agent_complete %}done{% endif %}">AGENTS.md</span>
+    <span class="step {% if availability_slots %}done{% endif %}">Availability</span>
   </div>
 </div>
 
 <form method="post" class="setup-form">
+  <input type="hidden" name="availability_json" id="availability_json" value="">
   <div class="grid-2">
     <div class="card">
       <h3>{% if user.role == 'founder' %}Founder profile{% else %}VC / fund profile{% endif %}</h3>
@@ -115,8 +117,34 @@
     </div>
   </div>
 
+  <div class="card availability-card">
+    <h3>Your availability</h3>
+    <p style="color:var(--muted); font-size:0.9rem;">
+      Add dates and times you’re free. After a match, agents pick the first overlapping slot for an intro call.
+    </p>
+    <div class="avail-picker">
+      <div>
+        <label>Date</label>
+        <input type="date" id="new_slot_date">
+      </div>
+      <div>
+        <label>From</label>
+        <input type="time" id="new_slot_start" value="14:00">
+      </div>
+      <div>
+        <label>Until</label>
+        <input type="time" id="new_slot_end" value="16:00">
+      </div>
+      <div class="avail-picker-action">
+        <button type="button" id="add-slot-btn" class="btn btn-ghost">+ Add slot</button>
+      </div>
+    </div>
+    <script type="application/json" id="availability-initial">{{ availability_slots | tojson }}</script>
+    <ul id="availability-list" class="availability-list"></ul>
+  </div>
+
   <div style="margin-top:1rem; display:flex; gap:0.75rem; align-items:center;">
-    <button type="submit" class="btn btn-primary">Save profile &amp; agent</button>
+    <button type="submit" class="btn btn-primary">Save profile, availability &amp; agent</button>
     {% if profile_complete and agent_complete %}
     <a href="{{ url_for('founder_dashboard' if user.role == 'founder' else 'vc_dashboard') }}" class="btn btn-ghost">Go to dashboard</a>
     {% endif %}
@@ -131,7 +159,9 @@ founder_profiles(user_id, company_name, one_liner, problem_solution, traction,
 vc_profiles(user_id, fund_name, your_title, investment_thesis, sectors, stages,
   check_size, geography, notable_investments, looking_for_founders)
 agent_md(user_id, content)
-matches(id, founder_id, vc_id, score, verdict, transcript)</pre>
+availability_slots(id, user_id, slot_date, start_time, end_time)
+matches(..., meeting_start, meeting_end, meeting_title)</pre>
 </details>
 
+<script src="{{ url_for('static', filename='setup-availability.js') }}"></script>
 {% endblock %}

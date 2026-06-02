@@ -48,6 +48,18 @@
 </div>
 
 <div class="card">
+  <h3>Availability</h3>
+  <p style="color:var(--muted); font-size:0.9rem;">
+    {% if availability_count %}
+    {{ availability_count }} slot{{ 's' if availability_count != 1 else '' }} saved — used to schedule intro calls after a match.
+    {% else %}
+    No availability yet. Add dates in setup so matches can book a call.
+    {% endif %}
+  </p>
+  <a href="{{ url_for('setup') }}#availability-list" class="btn btn-ghost btn-sm">Edit availability</a>
+</div>
+
+<div class="card">
   <h3>{% if user.role == 'founder' %}VCs to match{% else %}Founders to match{% endif %}</h3>
   <ul class="counterpart-list">
     {% for c in counterparts %}
